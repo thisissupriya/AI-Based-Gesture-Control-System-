@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EHI - Sterile Medical Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #000;
+            color: #00d2ff;
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            height: 100vh;
+        }
+
+        .main-viewer {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid rgba(0, 210, 255, 0.1);
+        }
+
+        .mri-display {
+            width: 80%;
+            height: 70%;
+            background: #0a0a0a;
+            border: 2px solid rgba(0, 210, 255, 0.2);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mri-display img {
+            max-height: 90%;
+            filter: grayscale(1) brightness(1.2) contrast(1.5);
+            transition: transform 0.2s;
+        }
+
+        .hud-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 20px;
+            background: rgba(0, 210, 255, 0.05);
+            backdrop-filter: blur(5px);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 210, 255, 0.2);
+        }
+
+        .monitor-right {
+            width: 400px;
+            background: #050505;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .feed-container {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #000;
+            border: 1px solid #00d2ff;
+            margin-bottom: 30px;
+        }
+
+        .vitals {
+            font-family: monospace;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+
+        @keyframes scanline {
+            0% {
+                top: 0;
+            }
+
+            100% {
+                top: 100%;
+            }
+        }
+
+        .scanline {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: rgba(0, 210, 255, 0.5);
+            animation: scanline 4s linear infinite;
+            box-shadow: 0 0 10px #00d2ff;
+        }
+
+        .btn-hub {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background: #00d2ff;
+            color: black;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+
+    <a href="/hub" class="btn-hub">EXIT STERILE MODE</a>
+
+    <div class="main-viewer">
+        <div class="hud-overlay">
+            <h2 style="margin: 0; font-size: 1rem;">PATIENT_ID: #8921-X</h2>
+            <div style="font-size: 0.8rem; opacity: 0.6;">Cranial MRI - T2 Weighted</div>
+        </div>
+
+        <div class="mri-display">
+            <div class="scanline"></div>
+            <!-- Using a Placeholder MRI image -->
+            <img id="mri-img"
+                src="https://images.unsplash.com/photo-1559757175-0eb30da82869?auto=format&fit=crop&q=80&w=1000"
+                alt="MRI Scan">
+        </div>
+
+        <div style="margin-top: 40px; text-align: center;">
+            <p>STERILE CONTROL ACTIVE</p>
+            <small style="opacity: 0.5;">Use Swipe Gestures to navigate slices | Pinch to Zoom</small>
+        </div>
+    </div>
+
+    <div class="monitor-right">
+        <h3>AI Hand Controller</h3>
+        <div class="feed-container">
+            <img src="/video_feed" style="width: 100%; height: 100%; object-fit: cover;">
+        </div>
+
+        <div class="vitals">
+            <div style="color: #ff4757;">HR: 72 BPM</div>
+            <div style="color: #2ed573;">O2: 98%</div>
+            <div style="color: #00d2ff;">SYS: 120 / DIA: 80</div>
+        </div>
+
+        <div style="background: rgba(0, 210, 255, 0.1); padding: 20px; border-radius: 10px;">
+            <h4 style="margin-top: 0;">LOGS</h4>
+            <div id="logs" style="font-size: 0.8rem; height: 150px; overflow-y: auto;">
+                [08:12:01] System Initialized...<br>
+                [08:12:05] Sterile Mode Engaged...<br>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentScale = 1.0;
+        let currentSlice = 0;
+        const totalSlices = 5;
+        // Mock MRI Slices (using placeholder images with different hues to simulate depth)
+        const slices = [
+            "https://images.unsplash.com/photo-1559757175-0eb30da82869?auto=format&fit=crop&q=80&w=1000",
+            "https://plus.unsplash.com/premium_photo-1673984261110-d1d931e062c0?auto=format&fit=crop&q=80&w=1000",
+            "https://images.unsplash.com/photo-1530497610245-94d3c16cda28?auto=format&fit=crop&q=80&w=1000",
+            "https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&q=80&w=1000",
+            "https://images.unsplash.com/photo-1583912267550-d41d8b5dde99?auto=format&fit=crop&q=80&w=1000"
+        ];
+
+        const img = document.getElementById('mri-img');
+        const logsEl = document.getElementById('logs');
+        let lastAction = "";
+
+        async function pollStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const state = await res.json();
+
+                const feedImg = document.querySelector('.feed-container img');
+                if (state.floating_camera_active) {
+                    feedImg.style.visibility = 'hidden';
+                } else {
+                    feedImg.style.visibility = 'visible';
+                }
+
+                if (state.last_action && state.last_action !== lastAction) {
+                    // Update log only on new significant action
+                    if (state.last_action.startsWith('MEDICAL_')) {
+                        processMedicalAction(state.last_action);
+                    }
+                    lastAction = state.last_action;
+                }
+            } catch (e) { }
+            setTimeout(pollStatus, 200);
+        }
+
+        function addLog(action) {
+            const time = new Date().toLocaleTimeString();
+            logsEl.innerHTML = `[${time}] ${action}<br>` + logsEl.innerHTML;
+        }
+
+        function processMedicalAction(action) {
+            // Rate limiter for logs to avoid spam
+            if (Math.random() > 0.7) addLog(action);
+
+            if (action === 'MEDICAL_ZOOM_IN') {
+                if (currentScale < 3.0) currentScale += 0.05;
+            } else if (action === 'MEDICAL_ZOOM_OUT') {
+                if (currentScale > 0.5) currentScale -= 0.05;
+            } else if (action === 'MEDICAL_NEXT_SLICE') {
+                // Debounce slice change
+                if (Date.now() % 5 === 0) return;
+                currentSlice = (currentSlice + 1) % totalSlices;
+                img.src = slices[currentSlice];
+            } else if (action === 'MEDICAL_PREV_SLICE') {
+                currentSlice = (currentSlice - 1 + totalSlices) % totalSlices;
+                img.src = slices[currentSlice];
+            }
+
+            img.style.transform = `scale(${currentScale})`;
+
+            // Visual feedback on HUD
+            document.querySelector('.hud-overlay h2').innerText = `SLICE: ${currentSlice + 1} / ${totalSlices} | ZOOM: ${Math.round(currentScale * 100)}%`;
+        }
+
+        // Initialize Domain
+        fetch('/api/hub/domain', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ domain: 'MEDICAL' })
+        });
+
+        pollStatus();
+    </script>
+</body>
+
+</html>

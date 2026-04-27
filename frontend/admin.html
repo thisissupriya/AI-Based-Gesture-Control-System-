@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Admin Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #0b0e14;
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-weight: 600;
+            color: #00d2ff;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: white;
+            font-family: inherit;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(to right, #00d2ff, #3a7bd5);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 15px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .status-pill {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-present {
+            background: rgba(46, 213, 115, 0.2);
+            color: #2ed573;
+        }
+
+        .refresh-btn {
+            width: auto;
+            padding: 8px 20px;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #3a7bd5;
+            text-decoration: none;
+        }
+
+        #student-list {
+            margin-top: 30px;
+        }
+
+        .delete-btn {
+            background: none;
+            color: #ff4757;
+            border: 1px solid #ff4757;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            width: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    <a href="/attendance" class="back-link">← Back to Kiosk</a>
+    <h1>Admin Panel - Student Attendance System</h1>
+
+    <div class="dashboard-grid">
+        <!-- Sidebar: Registration -->
+        <div class="card">
+            <h2>Register Student</h2>
+            <div class="input-group">
+                <label>Student Name</label>
+                <input type="text" id="reg-name" placeholder="John Doe">
+            </div>
+            <div class="input-group">
+                <label>Roll Number</label>
+                <input type="text" id="reg-roll" placeholder="CS-101">
+            </div>
+            <div class="input-group">
+                <label>Gesture Signature</label>
+                <select id="reg-gesture">
+                    <option value="">Loading gestures...</option>
+                </select>
+                <p style="font-size: 0.8rem; margin-top: 5px; color: rgba(255,255,255,0.4);">
+                    Note: Train the gesture in the main app before linking it here.
+                </p>
+            </div>
+            <button onclick="registerStudent()">Register Student</button>
+
+            <div id="student-list">
+                <h3>Registered Students</h3>
+                <div id="students-container"></div>
+            </div>
+        </div>
+
+        <!-- Main: Logs -->
+        <div class="card">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <h2>Real-time Logs</h2>
+                <div style="display: flex; gap: 8px;">
+                    <button class="refresh-btn" onclick="fetchLogs()" style="margin-bottom: 0;">Refresh Logs</button>
+                    <button class="refresh-btn" onclick="exportCSV()"
+                        style="margin-bottom: 0; background: rgba(46, 213, 115, 0.1); color: #2ed573;">Export
+                        CSV</button>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Roll No</th>
+                        <th>Timestamp</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="logs-body">
+                    <!-- Logs will be Casper here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function fetchGestures() {
+            const res = await fetch('/api/gestures');
+            const gestures = await res.json();
+            const select = document.getElementById('reg-gesture');
+            select.innerHTML = '<option value="">Select a Gesture</option>';
+            gestures.forEach(g => {
+                const opt = document.createElement('option');
+                opt.value = g.name;
+                opt.innerText = `${g.name} (${g.samples} samples)`;
+                select.appendChild(opt);
+            });
+        }
+
+        async function registerStudent() {
+            const name = document.getElementById('reg-name').value;
+            const roll = document.getElementById('reg-roll').value;
+            const gesture = document.getElementById('reg-gesture').value;
+
+            if (!name || !gesture) return alert("Please fill all fields");
+
+            const res = await fetch('/api/attendance/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, roll_number: roll, gesture_name: gesture })
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert("Student registered!");
+                fetchStudents();
+            } else {
+                alert(data.error);
+            }
+        }
+
+        async function fetchStudents() {
+            const res = await fetch('/api/attendance/students');
+            const students = await res.json();
+            const container = document.getElementById('students-container');
+            container.innerHTML = '';
+
+            students.forEach(s => {
+                const div = document.createElement('div');
+                div.style.padding = '10px';
+                div.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+                div.style.display = 'flex';
+                div.style.justifyContent = 'space-between';
+                div.innerHTML = `
+                    <span>${s.name} (${s.gesture_name})</span>
+                    <button class="delete-btn" onclick="deleteStudent(${s.id})">Delete</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function deleteStudent(id) {
+            if (!confirm("Are you sure? This will delete all attendance logs for this student.")) return;
+            await fetch(`/api/attendance/students/${id}`, { method: 'DELETE' });
+            fetchStudents();
+            fetchLogs();
+        }
+
+        async function fetchLogs() {
+            const res = await fetch('/api/attendance/logs');
+            const logs = await res.json();
+            const tbody = document.getElementById('logs-body');
+            tbody.innerHTML = '';
+
+            logs.forEach(log => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${log.name}</td>
+                    <td>${log.roll_number || '-'}</td>
+                    <td>${new Date(log.timestamp).toLocaleString()}</td>
+                    <td><span class="status-pill status-present">${log.status}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function exportCSV() {
+            window.open('/api/attendance/export', '_blank');
+        }
+
+        fetchGestures();
+        fetchStudents();
+        fetchLogs();
+        // Auto refresh logs every 5 seconds
+        setInterval(fetchLogs, 5000);
+    </script>
+</body>
+
+</html>

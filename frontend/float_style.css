@@ -1,0 +1,111 @@
+body,
+html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    user-select: none;
+}
+
+.drag-region {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    cursor: move;
+    -webkit-app-region: drag;
+}
+
+.resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    z-index: 100;
+    cursor: nwse-resize;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 3px;
+    background: linear-gradient(135deg, transparent 50%, rgba(99, 102, 241, 0.2) 100%);
+    -webkit-app-region: no-drag;
+}
+
+.no-drag {
+    z-index: 50;
+}
+
+/* Glassmorphism Container */
+.glass-panel {
+    width: 100vw;
+    height: 100vh;
+    background: rgba(3, 7, 18, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.glass-panel.active {
+    border-color: rgba(99, 102, 241, 0.5);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+}
+
+/* Video Feed */
+.video-wrapper {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+}
+
+img.feed {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.glass-panel:hover img.feed {
+    opacity: 1;
+}
+
+/* Animations */
+@keyframes pulse-dot {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.2);
+        opacity: 0.8;
+    }
+}
+
+.animate-pulse-dot {
+    animation: pulse-dot 2s infinite ease-in-out;
+}
+
+.fade-enter {
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.fade-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Ultra-Fast Interaction Overrides */
+button:active {
+    transition-duration: 0ms !important;
+}

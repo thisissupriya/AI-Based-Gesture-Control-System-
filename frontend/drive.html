@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EHI - Drive Mode</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --drive-accent: #ff0000;
+            --bg: #000;
+        }
+
+        body {
+            background: var(--bg);
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            height: 100vh;
+        }
+
+        .main-display {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .map-proxy {
+            width: 95%;
+            height: 60%;
+            background: #111;
+            border-radius: 30px;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .map-proxy img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.6) contrast(1.2) hue-rotate(-20deg);
+        }
+
+        .media-dock {
+            width: 95%;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            padding: 0 40px;
+            justify-content: space-between;
+        }
+
+        .track-info h2 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .track-info p {
+            margin: 0;
+            opacity: 0.5;
+        }
+
+        .big-action {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            font-weight: 600;
+            color: var(--drive-accent);
+            text-shadow: 0 0 40px rgba(255, 0, 0, 0.5);
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .big-action.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+
+        .side-info {
+            width: 400px;
+            background: #050505;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .cam-preview {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #000;
+            border: 2px solid var(--drive-accent);
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 40px;
+        }
+
+        .speed-gauge {
+            font-size: 5rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .btn-exit {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            padding: 15px 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            text-decoration: none;
+            color: white;
+            font-weight: 600;
+            z-index: 100;
+        }
+
+        .voice-feedback {
+            color: var(--drive-accent);
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <a href="/hub" class="btn-exit">REVENUE TO HUB</a>
+
+    <div class="main-display">
+        <div class="map-proxy">
+            <img src="https://images.unsplash.com/photo-1526725359915-5fb51e78450a?auto=format&fit=crop&q=80&w=1000"
+                alt="Map">
+            <div id="action-pop" class="big-action">NEXT TRACK</div>
+            <div
+                style="position: absolute; bottom: 20px; right: 20px; background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 10px;">
+                <strong>M6 Motorway</strong>
+            </div>
+        </div>
+
+        <div class="media-dock">
+            <div class="track-info">
+                <p>NOW PLAYING</p>
+                <h2 id="media-title">Nightcall - Kavinsky</h2>
+            </div>
+            <div style="display: flex; gap: 40px; font-size: 2rem;">
+                <span id="control-prev">⏮️</span>
+                <span id="control-play">⏸️</span>
+                <span id="control-next">⏭️</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="side-info">
+        <div class="speed-gauge">124</div>
+        <div style="opacity: 0.4; letter-spacing: 4px; margin-bottom: 40px;">KM/H</div>
+
+        <div class="cam-preview">
+            <img src="/video_feed" style="width: 100%; height: 100%; object-fit: cover;">
+        </div>
+
+        <div class="instruction">
+            <strong>DRIVE ASSIST v2.0</strong><br>
+            <p style="font-size: 0.9rem; opacity: 0.6;">Use large hand waves for media control. Voice confirmation is
+                active for safe driving.</p>
+        </div>
+
+        <div class="voice-feedback" id="voice-txt">VOICE ENGINE READY</div>
+    </div>
+
+    <script>
+        const pop = document.getElementById('action-pop');
+        const voiceTxt = document.getElementById('voice-txt');
+        const mediaTitle = document.getElementById('media-title');
+        const playBtn = document.getElementById('control-play');
+        const mapImg = document.querySelector('.map-proxy img');
+
+        let lastAction = "";
+
+        let isPlaying = true;
+        let currentTrack = 0;
+        const tracks = [
+            { title: "Nightcall - Kavinsky", art: "https://images.unsplash.com/photo-1526725359915-5fb51e78450a?auto=format&fit=crop&q=80&w=1000" },
+            { title: "Resonance - HOME", art: "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?auto=format&fit=crop&q=80&w=1000" },
+            { title: "Midnight City - M83", art: "https://images.unsplash.com/photo-1514525253440-b393452e8d26?auto=format&fit=crop&q=80&w=1000" },
+            { title: "Instant Crush - Daft Punk", art: "https://images.unsplash.com/photo-1459749411177-046f52bbace9?auto=format&fit=crop&q=80&w=1000" }
+        ];
+
+        async function pollStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const state = await res.json();
+
+                const feedImg = document.querySelector('.cam-preview img');
+                if (state.floating_camera_active) {
+                    feedImg.style.visibility = 'hidden';
+                } else {
+                    feedImg.style.visibility = 'visible';
+                }
+
+                if (state.last_action && state.last_action !== lastAction) {
+                    if (state.last_action.startsWith('DRIVE_')) {
+                        processDriveAction(state.last_action);
+                    }
+                    lastAction = state.last_action;
+                }
+            } catch (e) { }
+            setTimeout(pollStatus, 150);
+        }
+
+        function processDriveAction(action) {
+            const act = action.replace('DRIVE_', '');
+
+            if (act === 'NEXT_TRACK') {
+                currentTrack = (currentTrack + 1) % tracks.length;
+                updateMedia();
+                showAction("NEXT TRACK");
+                voiceTxt.innerText = `ANNOUNCING: Next Track`;
+            } else if (act === 'PREV_TRACK') {
+                currentTrack = (currentTrack - 1 + tracks.length) % tracks.length;
+                updateMedia();
+                showAction("PREV TRACK");
+                voiceTxt.innerText = `ANNOUNCING: Previous Track`;
+            } else if (act === 'PLAY_PAUSE') {
+                isPlaying = !isPlaying;
+                playBtn.innerText = isPlaying ? '⏸️' : '▶️';
+                showAction(isPlaying ? "PLAYING" : "PAUSED");
+                voiceTxt.innerText = `ANNOUNCING: ${isPlaying ? "Playing" : "Paused"}`;
+            }
+        }
+
+        function updateMedia() {
+            mediaTitle.innerText = tracks[currentTrack].title;
+            // mapImg.src = tracks[currentTrack].art; // Optional: change BG
+        }
+
+        function showAction(text) {
+            pop.innerText = text;
+            pop.classList.add('show');
+            voiceTxt.innerText = `ANNOUNCING: ${text}`;
+            setTimeout(() => {
+                pop.classList.remove('show');
+                voiceTxt.innerText = "VOICE ENGINE READY";
+            }, 2000);
+        }
+
+        // Initialize Drive Domain
+        fetch('/api/hub/domain', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ domain: 'AUTOMOTIVE' })
+        });
+
+        pollStatus();
+    </script>
+</body>
+
+</html>

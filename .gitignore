@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# temporary files
+test_frame_*.jpg
+output.avi
+*.log
+
+# Large Data (Optional, comment out if you want to upload samples)
+# samples/
+
+# OS
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Attendance Kiosk</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            overflow: hidden;
+            margin: 0;
+        }
+
+        .kiosk-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 20px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-weight: 600;
+            letter-spacing: 2px;
+            background: linear-gradient(to right, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .video-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+        }
+
+        #video-feed {
+            max-width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            pointer-events: none;
+        }
+
+        .status-badge {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #00d2ff;
+        }
+
+        .feedback-toast {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 40px;
+            background: rgba(46, 213, 115, 0.9);
+            color: white;
+            border-radius: 50px;
+            font-weight: 600;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .feedback-toast.show {
+            opacity: 1;
+            bottom: 60px;
+        }
+
+        .feedback-toast.error {
+            background: rgba(255, 71, 87, 0.9);
+        }
+
+        .clock {
+            padding: 10px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-align: right;
+        }
+
+        .instructions {
+            padding: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .admin-link {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.3);
+            text-decoration: none;
+            font-size: 0.8rem;
+        }
+
+        .admin-link:hover {
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="kiosk-container">
+        <div class="header">
+            <h1>ATTENDANCE KIOSK</h1>
+        </div>
+
+        <div class="video-container">
+            <img id="video-feed" src="/video_feed" alt="Video Feed">
+
+            <div class="overlay">
+                <div id="status" class="status-badge">READY TO SCAN</div>
+                <div id="fps" style="font-size: 0.7rem; color: rgba(255,255,255,0.5);">FPS: 0</div>
+            </div>
+
+            <div id="toast" class="feedback-toast">
+                ATTENDANCE MARKED!
+            </div>
+        </div>
+
+        <div class="instructions">
+            Please show your unique <strong>Gesture Signature</strong> to mark attendance.
+        </div>
+
+        <div class="clock-container" style="display: flex; justify-content: space-between; padding: 10px 20px;">
+            <div id="stats" style="font-size: 0.9rem; color: rgba(255,255,255,0.5);">Daily Tally: <span id="log-count"
+                    style="color: #00d2ff; font-weight: 600;">0</span></div>
+            <div class="clock" id="clock">00:00:00</div>
+        </div>
+    </div>
+
+    <a href="/admin" class="admin-link">Admin Dashboard</a>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const fpsEl = document.getElementById('fps');
+        const toastEl = document.getElementById('toast');
+        const clockEl = document.getElementById('clock');
+
+        // Initialize Attendance Mode immediately
+        async function setAttendanceMode() {
+            try {
+                await fetch('/api/mode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: 'ATTENDANCE' })
+                });
+            } catch (e) {
+                console.error("Failed to set mode", e);
+            }
+        }
+
+        function updateClock() {
+            const now = new Date();
+            clockEl.innerText = now.toLocaleTimeString();
+        }
+
+        let lastAction = "";
+
+        async function updateLogCount() {
+            try {
+                const res = await fetch('/api/attendance/logs?limit=500');
+                const logs = await res.json();
+                document.getElementById('log-count').innerText = logs.length;
+            } catch (e) { }
+        }
+
+        async function pollStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const state = await res.json();
+
+                fpsEl.innerText = `FPS: ${state.fps}`;
+
+                const feedImg = document.getElementById('video-feed');
+                if (state.floating_camera_active) {
+                    feedImg.style.visibility = 'hidden';
+                } else {
+                    feedImg.style.visibility = 'visible';
+                }
+
+                if (state.last_action && state.last_action !== lastAction) {
+                    if (state.last_action.startsWith('PRESENT:')) {
+                        const name = state.last_action.replace('PRESENT: ', '');
+                        showToast(`Welcome, ${name}! ✅`, false);
+                        playSuccessChime();
+                        updateLogCount();
+                    } else if (state.last_action === 'Unknown Fingerprint') {
+                        showToast("Fingerprint Not Recognized ❌", true);
+                        playErrorChime();
+                    }
+                    lastAction = state.last_action;
+                }
+
+                if (state.is_hand_visible) {
+                    statusEl.innerText = "HAND DETECTED";
+                    statusEl.style.color = "#2ed573";
+                } else {
+                    statusEl.innerText = "READY TO SCAN";
+                    statusEl.style.color = "#00d2ff";
+                }
+
+            } catch (e) { }
+            setTimeout(pollStatus, 200);
+        }
+
+        // --- Industry Kiosk Audio Synthesizer ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSuccessChime() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        }
+
+        function playErrorChime() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        }
+
+        function showToast(msg, isError) {
+            toastEl.innerText = msg;
+            toastEl.className = isError ? 'feedback-toast error show' : 'feedback-toast show';
+
+            setTimeout(() => {
+                toastEl.classList.remove('show');
+            }, 3000);
+        }
+
+        setAttendanceMode();
+        updateLogCount();
+        setInterval(updateClock, 1000);
+        setInterval(updateLogCount, 30000); // Sync every 30s
+        pollStatus();
+    </script>
+</body>
+
+</html>

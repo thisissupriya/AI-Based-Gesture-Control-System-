@@ -1,0 +1,10 @@
+opencv-python
+mediapipe
+pyautogui
+numpy
+flask
+flask-cors
+SpeechRecognition
+pywin32
+psutil
+pypdf

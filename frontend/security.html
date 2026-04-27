@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>EHI - Security Nexus</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --security-red: #ff3e3e;
+            --bg: #07070a;
+        }
+
+        body {
+            background: var(--bg);
+            color: #a0a0b0;
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .main-secure {
+            flex: 1;
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .status-ring {
+            width: 400px;
+            height: 400px;
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .status-ring.alert {
+            border-color: var(--security-red);
+            box-shadow: 0 0 100px rgba(255, 62, 62, 0.2);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .shield-icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+        }
+
+        .log-bar {
+            width: 100%;
+            height: 250px;
+            background: rgba(0, 0, 0, 0.5);
+            margin-top: 40px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            font-family: monospace;
+            overflow-y: auto;
+        }
+
+        .btn-hub {
+            position: fixed;
+            top: 40px;
+            left: 40px;
+            color: white;
+            text-decoration: none;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <a href="/hub" class="btn-hub">← ADMIN EXIT</a>
+
+    <div class="main-secure">
+        <div class="status-ring" id="ring">
+            <div class="shield-icon">🛡️</div>
+            <h1 style="color: white; margin: 0;">SECURE</h1>
+            <p>BIOMETRIC SCANNING ACTIVE</p>
+        </div>
+
+        <div class="log-bar" id="logs">
+            [SYS] AUTH_KERNEL INITIALIZED...<br>
+            [SYS] ENCRYPTION LAYER ACTIVE...<br>
+            [ML] GESTURE_SIGNATURES LOADED...<br>
+        </div>
+    </div>
+
+    <script>
+        const ring = document.getElementById('ring');
+        const logs = document.getElementById('logs');
+        let lastAction = "";
+
+        async function pollStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const state = await res.json();
+
+                if (state.last_action && state.last_action !== lastAction) {
+                    addLog(state.last_action);
+                    if (state.last_action.includes('SOS')) {
+                        triggerAlert();
+                    }
+                    lastAction = state.last_action;
+                }
+            } catch (e) { }
+            setTimeout(pollStatus, 200);
+        }
+
+        function addLog(msg) {
+            const time = new Date().toLocaleTimeString();
+            logs.innerHTML += `[${time}] TRIGGER: ${msg}<br>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        function triggerAlert() {
+            ring.classList.add('alert');
+            ring.innerHTML = '<div class="shield-icon">⚠️</div><h1 style="color:white; margin:0;">ALARM</h1><p>SILENT SOS TRIGGERED</p>';
+            setTimeout(() => {
+                ring.classList.remove('alert');
+                ring.innerHTML = '<div class="shield-icon">🛡️</div><h1 style="color:white; margin:0;">SECURE</h1><p>BIOMETRIC SCANNING ACTIVE</p>';
+            }, 5000);
+        }
+
+        pollStatus();
+    </script>
+</body>
+
+</html>

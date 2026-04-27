@@ -1,0 +1,73 @@
+{
+    "profiles": {
+        "default": {
+            "default": {
+                "fist": "volume_mute",
+                "open_palm": "play_pause",
+                "peace": "screenshot",
+                "thumbs_up": "volume_up",
+                "thumbs_down": "volume_down",
+                "volume up": "volume_up",
+                "minimize": "minimize_window",
+                "mute": "volume_mute",
+                "thumb": "open_notepad",
+                "5 finger": "volume_down",
+                "index finger ": "double_click",
+                "3 finger": "maximize_window",
+                "5 fingers": "track_cursor",
+                "4 finger": "close_current_window",
+                "parrot ": "browser_history",
+                "parrot": "cmd:notepad",
+                "Swipe Left": "volume_up",
+                "Swipe Right": "volume_down",
+                "Two finger": "cmd:youtube.com",
+                "three finger": "split_pdf",
+                "Four finger": "volume_up",
+                "indi": "split_pdf",
+                "left tgumb": "cmd:vs code",
+                "Index finger": "open_notepad",
+                "plam": "volume_mute",
+                "Hello": "volume_down",
+                "hi": "volume_up",
+                "wave": "volume_up",
+                "pinky": "volume_mute",
+                "three": "volume_up",
+                "right swipe": "volume_up",
+                "5": "volume_down",
+                "yolo": "zoom_in"
+            },
+            "apps": {
+                "python.exe": {
+                    "Two finger": "ppt_next"
+                },
+                "testapp": {
+                    "fist": "test_action"
+                },
+                "Antigravity": {},
+                "Python": {},
+                "notepad.exe": {
+                    "Two finger": "copy",
+                    "Index finger": "select_all",
+                    "three": "paste"
+                },
+                "Desktop": {},
+                "_PRESENTATION_MODE_": {
+                    "Two finger": "ppt_next",
+                    "Index finger": "ppt_prev",
+                    "three": "ppt_laser_pointer",
+                    "5": "ppt_start"
+                },
+                "Chrome": {
+                    "5": "scroll_down",
+                    "Two finger": "browser_new_tab",
+                    "Index finger": "voice_type",
+                    "three": "scroll_up"
+                },
+                "Textinputhost": {
+                    "three": "volume_mute",
+                    "5": "volume_mute"
+                }
+            }
+        }
+    }
+}

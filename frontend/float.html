@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Control Float</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#030712',
+                        surface: '#0f172a',
+                        accent: '#6366f1',
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="float_style.css">
+</head>
+
+<body>
+    <div class="glass-panel group" id="mainContainer">
+        <!-- DRAG HANDLE -->
+        <div class="drag-region"></div>
+
+        <!-- VIDEO FEED -->
+        <div class="video-wrapper">
+            <img src="/video_feed" class="feed" alt="Camera Feed">
+        </div>
+
+        <!-- RESIZE HANDLE -->
+        <div class="resize-handle" id="resizeHandle">
+            <div class="w-2 h-2 border-r-2 border-b-2 border-accent"></div>
+        </div>
+
+        <!-- PURE OVERLAY (Minimalist) -->
+        <div class="absolute inset-x-0 bottom-4 flex flex-col items-center justify-end z-[20] pointer-events-none">
+            <!-- Gesture Pill (Clean) -->
+            <div id="gesturePill"
+                class="hidden bg-black/60 backdrop-blur-md text-white px-4 py-1.5 rounded-full border border-white/10 shadow-2xl flex items-center gap-2">
+                <span id="gestureName" class="text-xs font-black tracking-widest uppercase">Detecting...</span>
+            </div>
+
+            <!-- Action Feedback (Instant) -->
+            <div id="actionContainer" class="hidden mt-2 transform transition-all duration-300">
+                <span id="actionText" class="text-xl font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                    Action
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <script src="float_script.js"></script>
+</body>
+
+</html>
